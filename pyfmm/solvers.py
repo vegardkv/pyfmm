@@ -85,28 +85,38 @@ def approximate_distance(current_values, fvals, certain_values=None, to_consider
     return current_values
 
 
-def march(bw_boundary, speed=None, n_min_pick_size=1):
+#def march(certain, distances=None, speed, batch_size)
+
+
+
+def march(mask, distance=None, speed=None, batch_size=1):
     """
     Optimization opportunities:
       - expand_nesw
+        :param distance:
         :: I imagine a better implementation is not hard. Creating a shifted matrix by considering "previous row" is
            likely more efficient than concatenating matrices.
       - "smart certainty" - using speed, one may be able to cleverly deduce more values that are definitely certain.
         Could for instance use some sort of "block"-choice of determined values.
       - approximate distances
         :: See the function itself
-    :param bw_boundary:
+    :param mask:
+    :param distance:
     :param speed:
-    :param n_min_pick_size:
+    :param batch_size:
     :return:
     """
-    mesh_shape = bw_boundary.shape
+    mesh_shape = mask.shape
     if speed is None:
         speed = np.ones(mesh_shape, dtype=np.float)
-
-    uu = np.ones(mesh_shape) * np.inf
-    uu[bw_boundary] = 0
-    certain = bw_boundary.copy()
+    if distance is None:
+        uu = np.ones(mesh_shape) * np.inf
+        uu[mask] = 0
+        certain = mask.copy()
+    else:
+        uu = distance.copy()
+        certain = mask.copy()
+        uu[np.invert(certain)] = np.inf
 
     uu_padded = np.lib.pad(uu, (1, 1), mode='constant', constant_values=np.inf)
     certain_padded = np.lib.pad(certain, (1, 1), mode='constant', constant_values=False)
@@ -125,17 +135,17 @@ def march(bw_boundary, speed=None, n_min_pick_size=1):
         consider_next[: , 0] = False
         consider_next[: ,-1] = False
         uu_padded = approximate_distance(uu_padded, speed_padded, certain_padded, to_consider=consider_next)
-        if n_min_pick_size == 1:  # guaranteed
+        if batch_size == 1:  # guaranteed
             if np.any(consider_next):
                 p = np.argmin(uu_padded[consider_next])
                 unr = np.argwhere(consider_next.flatten())[p]
                 unraveled_p = np.unravel_index(unr, mesh_shape)
                 certain_padded[unraveled_p] = True
-        elif n_min_pick_size == np.inf:  # greedy
+        elif batch_size == np.inf:  # greedy
             certain_padded[np.invert(np.isinf(uu_padded))] = True
         else:  # heuristic
-            ps = np.argpartition(uu_padded[consider_next], min(n_min_pick_size, np.count_nonzero(consider_next)) - 1)
-            unr = np.argwhere(consider_next.flatten())[ps[:(n_min_pick_size - 1)]]
+            ps = np.argpartition(uu_padded[consider_next], min(batch_size, np.count_nonzero(consider_next)) - 1)
+            unr = np.argwhere(consider_next.flatten())[ps[:(batch_size - 1)]]
             unraveled_ps = np.unravel_index(unr, mesh_shape)
             certain_padded[unraveled_ps] = np.invert((np.isinf(uu_padded[unraveled_ps]) + np.isnan(uu_padded[unraveled_ps])))
         previous_count_certain = current_count_certain
