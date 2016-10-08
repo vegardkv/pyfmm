@@ -15,7 +15,7 @@ class ApproximateDistanceTester(unittest.TestCase):
         my_mesh[2, 2] = True
         uu = np.ones(my_mesh.shape) * np.inf
         uu[my_mesh] = 0
-        new_vals = pyfmm.solvers.approximate_distance(uu, np.ones(my_mesh.shape), certain)
+        new_vals = pyfmm.solvers._approximate_distance(uu, np.ones(my_mesh.shape), certain)
 
         solution = np.ones((5,5)) * np.inf
         solution[2, 2] = 0
@@ -34,7 +34,7 @@ class ApproximateDistanceTester(unittest.TestCase):
         my_mesh[2, 3] = True
         uu = np.ones(my_mesh.shape) * np.inf
         uu[my_mesh] = 0
-        new_vals = pyfmm.solvers.approximate_distance(uu, np.ones(my_mesh.shape), certain)
+        new_vals = pyfmm.solvers._approximate_distance(uu, np.ones(my_mesh.shape), certain)
 
         solution = np.ones((5,7)) * np.inf
         solution[2, 3] = 0
@@ -56,7 +56,7 @@ class ApproximateDistanceTester(unittest.TestCase):
         uu[my_mesh] = 0
         counter = 0
         while np.any(np.isinf(uu)) and counter < 1000:
-            new_vals = pyfmm.solvers.approximate_distance(uu, np.ones(my_mesh.shape), certain)
+            new_vals = pyfmm.solvers._approximate_distance(uu, np.ones(my_mesh.shape), certain)
             certain = True - np.isinf(new_vals)
             uu = new_vals
             counter += 1

@@ -1,6 +1,6 @@
 # MIT License
 #
-# Copyright (c) 2016 vegardkv
+# Copyright (c) 2016 Vegard Kvernelv
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -32,7 +32,7 @@ def _expand_nesw(arr):
     return out_arr
 
 
-def approximate_distance(current_values, fvals, certain_values=None, to_consider=None):
+def _approximate_distance(current_values, fvals, certain_values=None, to_consider=None):
     """
     :param current_values:
     :param fvals:
@@ -77,11 +77,22 @@ def approximate_distance(current_values, fvals, certain_values=None, to_consider
 
 def march(mask, distance=None, speed=None, batch_size=1):
     """
-    :param mask:
-    :param distance:
-    :param speed:
-    :param batch_size:
-    :return:
+    Compute the distance from a boundary using a variant of the Fast Marching Method (FMM). The regular FMM accepts one
+    point value at each iteration, however for certain problems, a speed up can be achieved by accepting the n smallest
+    values at each iteration instead of just the smallest. This may, in some cases, be inaccurate, but the speed-up can
+    be significant.
+    :param mask: A boolean array describing the boundary (or known distances values if 'distance' is given). If
+     mask[i,j] is True, then the distance to the boundary from grid point (i, j) is assumed known, and given by
+     distance[i,j] (if distance is not given, it is set to 0). All False values are to be computed.
+    :param distance: Prior distances to the boundary. If corresponding 'mask' element is True, then the value remains
+     unchanged.
+    :param speed: Speed at which grid node [i, j] can be traversed.
+    :param batch_size: Maximum number of values to accept at each iteration. The value 1 yields the regular FMM, and
+     using np.inf means accepting as much as possible at each step (although this can produce some unfortunate edge
+     effects.
+    :return: A tuple where the first element is the computed distances, and the second is a boolean array with True for
+     all grid points that have been computed by the method (this can be useful if parts of the grid have speed 0 and is
+     thus inaccessible).
     """
     mesh_shape = mask.shape
     if speed is None:
@@ -111,7 +122,7 @@ def march(mask, distance=None, speed=None, batch_size=1):
         consider_next[-1, :] = False
         consider_next[: , 0] = False
         consider_next[: ,-1] = False
-        uu_padded = approximate_distance(uu_padded, speed_padded, certain_padded, to_consider=consider_next)
+        uu_padded = _approximate_distance(uu_padded, speed_padded, certain_padded, to_consider=consider_next)
         if batch_size == 1:  # guaranteed
             if np.any(consider_next):
                 p = np.argmin(uu_padded[consider_next])
