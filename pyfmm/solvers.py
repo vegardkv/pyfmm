@@ -23,7 +23,7 @@
 import numpy as np
 
 
-def expand_nesw(arr):
+def _expand_nesw(arr):
     out_arr = arr.copy()
     out_arr[:-1, :] |= arr[1:]
     out_arr[1:, :] |= arr[:-1]
@@ -34,16 +34,6 @@ def expand_nesw(arr):
 
 def approximate_distance(current_values, fvals, certain_values=None, to_consider=None):
     """
-    Optimization opportunities:
-       - current_values[np.invert(certain_values)] = np.inf
-                     :: Takes some time, since a lot of values are assigned and also not used.
-       - roll operation
-                     :: Currently perfomed using concatenation, which may be slow. Assigning a new matrix each time is
-                        probably inefficient. In general, rolls/shifts are used extensively and should be investigated
-                        next
-       - actual computation
-                     :: The "aprx" computation may be skipped for multiple, if the method is studied more closely.
-                        However, the current implementation is rather robust.
     :param current_values:
     :param fvals:
     :param certain_values:
@@ -85,21 +75,8 @@ def approximate_distance(current_values, fvals, certain_values=None, to_consider
     return current_values
 
 
-#def march(certain, distances=None, speed, batch_size)
-
-
-
 def march(mask, distance=None, speed=None, batch_size=1):
     """
-    Optimization opportunities:
-      - expand_nesw
-        :param distance:
-        :: I imagine a better implementation is not hard. Creating a shifted matrix by considering "previous row" is
-           likely more efficient than concatenating matrices.
-      - "smart certainty" - using speed, one may be able to cleverly deduce more values that are definitely certain.
-        Could for instance use some sort of "block"-choice of determined values.
-      - approximate distances
-        :: See the function itself
     :param mask:
     :param distance:
     :param speed:
@@ -129,7 +106,7 @@ def march(mask, distance=None, speed=None, batch_size=1):
 
     # Kernel
     while current_count_certain - previous_count_certain != 0:
-        consider_next = np.logical_xor(expand_nesw(certain_padded), certain_padded)
+        consider_next = np.logical_xor(_expand_nesw(certain_padded), certain_padded)
         consider_next[0 , :] = False
         consider_next[-1, :] = False
         consider_next[: , 0] = False
