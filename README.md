@@ -5,6 +5,10 @@ The implementation uses mostly boolean arrays for accessing and updating values.
 
 ## Installation
 
+```
+pip install pyfmm
+```
+
 ## Interface
 
 There are two ways to compute the distances: 
